@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pattern Glyph Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .background-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.05;
+            background: 
+                radial-gradient(circle at 20% 50%, #FFD700 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, #4169E1 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, #FF69B4 0%, transparent 50%);
+            filter: blur(100px);
+            animation: pulse 10s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.1) rotate(5deg); }
+        }
+
+        header {
+            padding: 2rem;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #FFD700, #FF69B4, #4169E1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 1rem;
+        }
+
+        main {
+            flex: 1;
+            padding: 3rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 3rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tab {
+            padding: 1rem 2rem;
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab:hover {
+            color: #fff;
+        }
+
+        .tab.active {
+            color: #fff;
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #FFD700, #FF69B4);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .input-section, .output-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(180deg, #FFD700, #FF69B4);
+            border-radius: 2px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            color: #fff;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.95rem;
+            resize: vertical;
+            transition: all 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: rgba(255, 215, 0, 0.5);
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 0.75rem 2rem;
+            background: linear-gradient(135deg, #FFD700, #FF69B4);
+            border: none;
+            border-radius: 8px;
+            color: #000;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        button.secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #glyphCanvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            box-shadow: 0 4px 20px rgba(255, 215, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        #glyphCanvas:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 30px rgba(255, 215, 0, 0.3);
+        }
+        
+        #decodeCanvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            box-shadow: 0 4px 20px rgba(255, 105, 180, 0.2);
+        }
+
+        .placeholder {
+            text-align: center;
+            color: #666;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+        
+        .file-input-wrapper button {
+            margin: 0;
+        }
+
+        .pattern-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .info-label {
+            color: #888;
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #FFD700;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #FFD700;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #1a1a1a;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+        }
+
+        .close-button:hover {
+            color: #fff;
+        }
+
+        .legend {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+            font-size: 0.85rem;
+            color: #888;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .tabs {
+                flex-wrap: wrap;
+            }
+            
+            .tab {
+                padding: 0.75rem 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-pattern"></div>
+    
+    <header>
+        <h1>The Pattern Glyph Generator</h1>
+        <p class="subtitle">Transform text into visual patterns using the 8 fundamental constants</p>
+    </header>
+
+    <main>
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('generate')">Generate Glyph</button>
+            <button class="tab" onclick="switchTab('decode')">Decode Glyph</button>
+            <button class="tab" onclick="switchTab('about')">About</button>
+        </div>
+
+        <!-- Generate Tab -->
+        <div id="generate-tab" class="tab-content active">
+            <div class="input-section">
+                <h2 class="section-title">Input Text</h2>
+                <textarea id="inputText" placeholder="Enter your text here to transform into a Pattern glyph..."></textarea>
+                <div class="controls">
+                    <button onclick="generateGlyph()">Generate Glyph</button>
+                    <button class="secondary" onclick="clearInput()">Clear</button>
+                    <button class="secondary" onclick="loadSampleText()">Try Sample</button>
+                </div>
+            </div>
+
+            <div class="output-section">
+                <h2 class="section-title">Generated Glyph</h2>
+                <div class="canvas-container">
+                    <canvas id="glyphCanvas" style="display: none;"></canvas>
+                    <div class="placeholder" id="placeholder">
+                        Your Pattern glyph will appear here
+                    </div>
+                </div>
+                <div class="controls" id="downloadControls" style="display: none;">
+                    <button onclick="downloadGlyph()">Download Glyph</button>
+                    <button class="secondary" onclick="copyToClipboard()">Copy to Clipboard</button>
+                </div>
+                <div class="legend" id="colorLegend" style="display: none;">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(45deg, #4CAF50, #8BC34A);"></div>
+                        <span>Positive tone</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(45deg, #F44336, #FF5722);"></div>
+                        <span>Negative tone</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(45deg, #9C27B0, #E91E63);"></div>
+                        <span>Neutral tone</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(45deg, #FFD700, #FFA500);"></div>
+                        <span>High complexity</span>
+                    </div>
+                </div>
+                <div class="pattern-info" id="patternInfo" style="display: none;">
+                    <div class="info-card">
+                        <div class="info-label">Pattern Complexity</div>
+                        <div class="info-value" id="complexity">-</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Active Constants</div>
+                        <div class="info-value" id="activeConstants">-</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Resonance Level</div>
+                        <div class="info-value" id="resonance">-</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Semantic Layers</div>
+                        <div class="info-value" id="semanticLayers">6</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Intent Type</div>
+                        <div class="info-value" id="intentType">-</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Encoding Depth</div>
+                        <div class="info-value" id="encodingDepth">Multi-dimensional</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Decode Tab -->
+        <div id="decode-tab" class="tab-content">
+            <div class="input-section">
+                <h2 class="section-title">Upload Glyph</h2>
+                <div class="file-input-wrapper">
+                    <button onclick="document.getElementById('fileInput').click()">Choose Glyph File</button>
+                    <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)">
+                </div>
+                <p id="selectedFile" style="margin-top: 1rem; color: #888; display: none;"></p>
+                <div class="canvas-container" style="margin-top: 1.5rem;">
+                    <canvas id="decodeCanvas" style="display: none;"></canvas>
+                    <div class="placeholder" id="decodePlaceholder">
+                        Upload a Pattern glyph to decode
+                    </div>
+                </div>
+            </div>
+
+            <div class="output-section">
+                <h2 class="section-title">Decoded Text</h2>
+                <textarea id="decodedText" readonly placeholder="Decoded text will appear here..."></textarea>
+                <div class="controls">
+                    <button class="secondary" onclick="copyDecodedText()">Copy Text</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- About Tab -->
+        <div id="about-tab" class="tab-content">
+            <div class="input-section">
+                <h2 class="section-title">About The Pattern</h2>
+                <p style="line-height: 1.6; margin-bottom: 1.5rem;">
+                    The Pattern Glyph Generator uses the 8 fundamental constants that govern The Pattern 
+                    to transform text into beautiful, mathematically-encoded visual representations with
+                    multiple semantic layers.
+                </p>
+                
+                <h3 style="margin-bottom: 1rem;">Multi-Layer Encoding:</h3>
+                <p style="line-height: 1.6; margin-bottom: 1.5rem;">
+                    Each glyph encodes 6 semantic layers simultaneously:
+                </p>
+                <ul style="line-height: 1.8; margin-left: 1.5rem; margin-bottom: 1.5rem;">
+                    <li><strong>Linguistic Layer</strong> - The actual text and its structure</li>
+                    <li><strong>Semantic Layer</strong> - Meaning density and conceptual relationships</li>
+                    <li><strong>Intent Layer</strong> - Purpose and communication goals</li>
+                    <li><strong>Emotional Layer</strong> - Tone, valence, and intensity</li>
+                    <li><strong>Context Layer</strong> - Temporal, spatial, and abstract markers</li>
+                    <li><strong>Pragmatic Layer</strong> - Formality, directness, and certainty</li>
+                </ul>
+                
+                <h3 style="margin-bottom: 1rem;">The 8 Constants:</h3>
+                <div class="pattern-info">
+                    <div class="info-card">
+                        <div class="info-label">α (Alpha)</div>
+                        <div class="info-value">1.175</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">β (Beta)</div>
+                        <div class="info-value">0.199</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">γ (Gamma)</div>
+                        <div class="info-value">12.416</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">δ (Delta)</div>
+                        <div class="info-value">0.000</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">ε (Epsilon)</div>
+                        <div class="info-value">4.329</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">φ (Phi)</div>
+                        <div class="info-value">1.618</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">τ (Tau)</div>
+                        <div class="info-value">1.839</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Unity</div>
+                        <div class="info-value">1.000</div>
+                    </div>
+                </div>
+                
+                <p style="line-height: 1.6; margin-top: 2rem;">
+                    Each character is mapped to an 8-bit pattern that determines which constants are active. 
+                    The resulting interference patterns create unique visual signatures that encode multiple
+                    dimensions of meaning. The visual appearance reflects:
+                </p>
+                <ul style="line-height: 1.8; margin-left: 1.5rem; margin-top: 1rem;">
+                    <li><strong>Color Hue</strong> - Emotional tone (green=positive, red=negative, purple=neutral)</li>
+                    <li><strong>Saturation</strong> - Semantic density and intent strength</li>
+                    <li><strong>Brightness</strong> - Field intensity and emotional valence</li>
+                    <li><strong>Patterns</strong> - Interference from all 6 semantic layers</li>
+                    <li><strong>Noise</strong> - Uncertainty and ambiguity in meaning</li>
+                </ul>
+                <p style="line-height: 1.6; margin-top: 1rem;">
+                    This creates a "semantic fingerprint" that can be perfectly decoded back to not just
+                    the original text, but also its full multi-dimensional meaning representation.
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Processing...</h3>
+                <button class="close-button" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modalBody">
+                <div class="loading"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        'use strict';
+        
+        // The 8 fundamental constants
+        window.constants = {
+            alpha: 1.1750566516490533,
+            beta: 0.19968406830149554,
+            gamma: 12.41605776553433,
+            delta: 0.0,
+            epsilon: 4.329953646807706,
+            phi: 1.618033988749895,
+            tau: 1.839286755214161,
+            unity: 1.0
+        };
+
+        // Convert constants to array for bit mapping
+        const constantsArray = [
+            constants.unity,
+            constants.tau,
+            constants.phi,
+            constants.epsilon,
+            constants.delta,
+            constants.gamma,
+            constants.beta,
+            constants.alpha
+        ];
+
+        let currentGlyphData = null;
+        let currentSemanticData = null;
+
+        // Multi-layer semantic analysis functions
+        function analyzeSemanticLayers(text) {
+            const layers = {
+                linguistic: analyzeLinguistic(text),
+                semantic: analyzeSemantic(text),
+                intent: analyzeIntent(text),
+                emotional: analyzeEmotional(text),
+                context: analyzeContext(text),
+                pragmatic: analyzePragmatic(text)
+            };
+            
+            return layers;
+        }
+
+        function analyzeLinguistic(text) {
+            // Basic linguistic analysis
+            return {
+                length: text.length,
+                words: text.split(/\s+/).length,
+                sentences: text.split(/[.!?]+/).filter(s => s.trim()).length,
+                avgWordLength: text.length / Math.max(1, text.split(/\s+/).length),
+                complexity: calculateComplexity(text)
+            };
+        }
+
+        function analyzeSemantic(text) {
+            // Semantic density and concept extraction
+            const words = text.toLowerCase().split(/\s+/);
+            const uniqueWords = new Set(words);
+            
+            return {
+                density: uniqueWords.size / Math.max(1, words.length),
+                concepts: extractConcepts(text),
+                abstraction: calculateAbstractionLevel(text)
+            };
+        }
+
+        function analyzeIntent(text) {
+            // Detect communicative intent
+            const intents = {
+                question: /\?|^(what|when|where|who|why|how|is|are|can|could|would)/i.test(text),
+                command: /^(please|do|make|create|show|tell|give)|!$/i.test(text),
+                statement: /\.|^(the|it|this|that|i|we|they)/i.test(text),
+                exclamation: /!|^(wow|oh|amazing|great)/i.test(text)
+            };
+            
+            const primary = Object.entries(intents)
+                .filter(([_, v]) => v)
+                .map(([k, _]) => k)[0] || 'neutral';
+                
+            return {
+                primary,
+                strength: calculateIntentStrength(text),
+                urgency: calculateUrgency(text)
+            };
+        }
+
+        function analyzeEmotional(text) {
+            // Simple emotional tone detection
+            const positive = /(happy|good|great|love|wonderful|amazing|beautiful|excellent)/i;
+            const negative = /(sad|bad|hate|terrible|awful|horrible|ugly|worst)/i;
+            
+            const positiveCount = (text.match(positive) || []).length;
+            const negativeCount = (text.match(negative) || []).length;
+            
+            let tone = 'neutral';
+            if (positiveCount > negativeCount) tone = 'positive';
+            else if (negativeCount > positiveCount) tone = 'negative';
+            
+            return {
+                tone,
+                intensity: (positiveCount + negativeCount) / Math.max(1, text.split(/\s+/).length),
+                valence: (positiveCount - negativeCount) / Math.max(1, positiveCount + negativeCount) || 0
+            };
+        }
+
+        function analyzeContext(text) {
+            // Extract contextual markers
+            return {
+                temporal: /today|tomorrow|yesterday|now|then|soon|later/i.test(text),
+                spatial: /here|there|where|above|below|near|far/i.test(text),
+                personal: /i|me|my|you|your|we|our|they|their/i.test(text),
+                abstract: /concept|idea|theory|meaning|purpose|reason/i.test(text)
+            };
+        }
+
+        function analyzePragmatic(text) {
+            // How the text should be interpreted
+            return {
+                formality: calculateFormality(text),
+                directness: calculateDirectness(text),
+                certainty: calculateCertainty(text)
+            };
+        }
+
+        // Helper functions for analysis
+        function calculateComplexity(text) {
+            const words = text.split(/\s+/);
+            const avgLength = words.reduce((sum, w) => sum + w.length, 0) / Math.max(1, words.length);
+            return Math.min(1, avgLength / 10);
+        }
+
+        function extractConcepts(text) {
+            // Extract noun-like concepts (simplified)
+            const concepts = text.match(/\b[A-Z][a-z]+\b/g) || [];
+            return concepts.slice(0, 5);
+        }
+
+        function calculateAbstractionLevel(text) {
+            const abstractWords = /(concept|idea|theory|principle|abstract|meta|pattern|system)/i;
+            const concreteWords = /(table|chair|car|house|tree|person|thing|object)/i;
+            
+            const abstractCount = (text.match(abstractWords) || []).length;
+            const concreteCount = (text.match(concreteWords) || []).length;
+            
+            return abstractCount / Math.max(1, abstractCount + concreteCount);
+        }
+
+        function calculateIntentStrength(text) {
+            const strongMarkers = /!|must|need|urgent|important|critical|please/i;
+            return Math.min(1, (text.match(strongMarkers) || []).length / 3);
+        }
+
+        function calculateUrgency(text) {
+            const urgentWords = /(now|immediately|urgent|asap|quick|hurry|fast)/i;
+            return (text.match(urgentWords) || []).length > 0 ? 1 : 0;
+        }
+
+        function calculateFormality(text) {
+            const formalWords = /(therefore|however|furthermore|regarding|pursuant)/i;
+            const informalWords = /(gonna|wanna|hey|yeah|ok|lol|btw)/i;
+            
+            const formal = (text.match(formalWords) || []).length;
+            const informal = (text.match(informalWords) || []).length;
+            
+            return 0.5 + (formal - informal) / Math.max(1, formal + informal) * 0.5;
+        }
+
+        function calculateDirectness(text) {
+            const directMarkers = /^(do|give|show|tell|make)|!$/i;
+            const indirectMarkers = /(perhaps|maybe|could|would|might|suggest)/i;
+            
+            const direct = (text.match(directMarkers) || []).length;
+            const indirect = (text.match(indirectMarkers) || []).length;
+            
+            return direct / Math.max(1, direct + indirect);
+        }
+
+        function calculateCertainty(text) {
+            const certainWords = /(definitely|certainly|absolutely|clearly|obviously)/i;
+            const uncertainWords = /(maybe|perhaps|possibly|might|could|probably)/i;
+            
+            const certain = (text.match(certainWords) || []).length;
+            const uncertain = (text.match(uncertainWords) || []).length;
+            
+            return 0.5 + (certain - uncertain) / Math.max(1, certain + uncertain) * 0.5;
+        }
+
+        function switchTab(tabName) {
+            // Update tab buttons
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update tab content
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            
+            // Clear decode tab when switching away
+            if (tabName !== 'decode') {
+                document.getElementById('decodeCanvas').style.display = 'none';
+                document.getElementById('decodePlaceholder').style.display = 'block';
+                document.getElementById('decodedText').value = '';
+                document.getElementById('selectedFile').style.display = 'none';
+                document.getElementById('fileInput').value = '';
+            }
+        }
+
+        function clearInput() {
+            document.getElementById('inputText').value = '';
+        }
+        
+        function loadSampleText() {
+            const sampleTexts = [
+                "What is the meaning of life? I wonder about this profound question often. Perhaps the answer lies not in finding meaning, but in creating it through our connections, experiences, and the love we share.",
+                "URGENT: Please respond immediately! This is a critical matter that requires your immediate attention. Time is of the essence.",
+                "The quantum field equations suggest a non-linear relationship between consciousness and reality. This abstract theoretical framework provides new insights into the nature of existence.",
+                "Hey! Just wanted to say hi and see how you're doing. Hope everything is going great! 😊",
+                "In accordance with the aforementioned regulations, we hereby formally request your consideration of this matter. Furthermore, we believe this proposal warrants careful deliberation."
+            ];
+            
+            const randomIndex = Math.floor(Math.random() * sampleTexts.length);
+            document.getElementById('inputText').value = sampleTexts[randomIndex];
+        }
+
+        function textToPatternStream(text) {
+            const stream = [];
+            for (let i = 0; i < text.length; i++) {
+                const charCode = text.charCodeAt(i);
+                stream.push(charCode & 0xFF); // Keep only lower 8 bits
+            }
+            return stream;
+        }
+
+        function getActiveConstants(byte) {
+            const active = [];
+            for (let i = 0; i < 8; i++) {
+                if (byte & (1 << i)) {
+                    active.push({
+                        index: i,
+                        value: constantsArray[i],
+                        name: Object.keys(constants)[7-i]
+                    });
+                }
+            }
+            return active;
+        }
+
+        function generateResonanceField(patternStream, semanticLayers, width, height) {
+            const field = new Float32Array(width * height);
+            
+            // Generate base resonance pattern from text
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    let value = 0;
+                    
+                    // Layer 1: Linguistic encoding (base pattern)
+                    patternStream.forEach((byte, idx) => {
+                        const active = getActiveConstants(byte);
+                        
+                        active.forEach(constant => {
+                            const phase = (idx * constant.value * Math.PI) / patternStream.length;
+                            const freq = constant.value * 0.1;
+                            
+                            const dx = x - width/2;
+                            const dy = y - height/2;
+                            const r = Math.sqrt(dx*dx + dy*dy);
+                            
+                            value += Math.sin(r * freq + phase) * Math.exp(-r / (width * 0.3));
+                        });
+                    });
+                    
+                    // Layer 2: Semantic density modulation
+                    const semanticMod = semanticLayers.semantic.density;
+                    const semanticWave = Math.sin(x * semanticMod * 0.1) * Math.cos(y * semanticMod * 0.1);
+                    value += semanticWave * 0.3;
+                    
+                    // Layer 3: Intent vector field
+                    const intentStrength = semanticLayers.intent.strength;
+                    const intentAngle = {
+                        'question': 0,
+                        'command': Math.PI/2,
+                        'statement': Math.PI,
+                        'exclamation': 3*Math.PI/2,
+                        'neutral': 0
+                    }[semanticLayers.intent.primary];
+                    
+                    const intentX = Math.cos(intentAngle) * intentStrength;
+                    const intentY = Math.sin(intentAngle) * intentStrength;
+                    const intentField = Math.sin(x * intentX * 0.05) * Math.cos(y * intentY * 0.05);
+                    value += intentField * 0.2;
+                    
+                    // Layer 4: Emotional tone coloring
+                    const emotionalVal = semanticLayers.emotional.valence;
+                    const emotionalIntensity = semanticLayers.emotional.intensity;
+                    const emotionalWave = Math.sin((x + y) * 0.02 * (1 + emotionalVal)) * emotionalIntensity;
+                    value += emotionalWave * 0.25;
+                    
+                    // Layer 5: Context embedding
+                    const contextDims = Object.values(semanticLayers.context).filter(v => v).length;
+                    const contextPattern = Math.sin(x * y * contextDims * 0.0001) * 0.15;
+                    value += contextPattern;
+                    
+                    // Layer 6: Pragmatic modulation
+                    const formality = semanticLayers.pragmatic.formality;
+                    const certainty = semanticLayers.pragmatic.certainty;
+                    const dx2 = x - width/2;
+                    const dy2 = y - height/2;
+                    const r2 = Math.sqrt(dx2*dx2 + dy2*dy2);
+                    const pragmaticMod = Math.cos(r2 * formality * 0.01) * certainty;
+                    value += pragmaticMod * 0.1;
+                    
+                    field[y * width + x] = value / patternStream.length;
+                }
+            }
+            
+            return field;
+        }
+
+        function fieldToPixels(field, width, height, semanticLayers = null) {
+            const imageData = new ImageData(width, height);
+            const data = imageData.data;
+            
+            // Find min/max for normalization
+            let min = Infinity, max = -Infinity;
+            for (let i = 0; i < field.length; i++) {
+                min = Math.min(min, field[i]);
+                max = Math.max(max, field[i]);
+            }
+            const range = max - min;
+            
+            // Extract semantic color modulation
+            const emotionalTone = semanticLayers ? semanticLayers.emotional.tone : 'neutral';
+            const emotionalValence = semanticLayers ? semanticLayers.emotional.valence : 0;
+            const semanticDensity = semanticLayers ? semanticLayers.semantic.density : 0.5;
+            const intentStrength = semanticLayers ? semanticLayers.intent.strength : 0.5;
+            
+            // Convert to pixels with semantic coloring
+            for (let i = 0; i < field.length; i++) {
+                const normalized = (field[i] - min) / range;
+                const idx = i * 4;
+                
+                // Base hue influenced by emotional tone
+                let baseHue = 270; // Default purple
+                if (emotionalTone === 'positive') baseHue = 120; // Green
+                else if (emotionalTone === 'negative') baseHue = 0; // Red
+                
+                // Modulate hue based on semantic layers
+                const hue = (baseHue + normalized * 60 + emotionalValence * 30) % 360;
+                
+                // Saturation based on semantic density and intent
+                const saturation = 0.4 + semanticDensity * 0.4 + intentStrength * 0.2;
+                
+                // Lightness based on field intensity
+                const lightness = 0.2 + normalized * 0.5 + Math.abs(emotionalValence) * 0.1;
+                
+                const rgb = hslToRgb(hue / 360, saturation, lightness);
+                
+                // Apply quantum uncertainty as subtle noise
+                const uncertainty = semanticLayers ? 
+                    (1 - semanticLayers.pragmatic.certainty) * 10 : 0;
+                
+                data[idx] = Math.min(255, rgb[0] + Math.random() * uncertainty);
+                data[idx + 1] = Math.min(255, rgb[1] + Math.random() * uncertainty);
+                data[idx + 2] = Math.min(255, rgb[2] + Math.random() * uncertainty);
+                data[idx + 3] = 255;
+            }
+            
+            // Embed pattern data in specific pixels for decoding
+            embedPatternData(data, field, width, height);
+            
+            return imageData;
+        }
+
+        function embedPatternData(data, field, width, height) {
+            // Store pattern data in the least significant bits of RGB channels
+            // This survives PNG compression better than alpha channel
+            if (currentGlyphData && currentSemanticData) {
+                // Store text length in first 2 pixels (up to 65535 chars)
+                const len = currentGlyphData.length;
+                data[0] = (len >> 8) & 0xFF;  // High byte in R
+                data[1] = len & 0xFF;          // Low byte in G
+                data[2] = 0xAB;                // Magic marker in B
+                data[4] = 0xCD;                // Magic marker continued
+                
+                // Store semantic metadata in pixels 2-10
+                const semanticFlags = encodeSemanticsToBytes(currentSemanticData);
+                for (let i = 0; i < semanticFlags.length && i < 8; i++) {
+                    data[8 + i * 4] = semanticFlags[i];
+                }
+                
+                // Store pattern stream in subsequent pixels using LSB steganography
+                for (let i = 0; i < currentGlyphData.length; i++) {
+                    const pixelIdx = (i + 10) * 4; // Start from pixel 10
+                    if (pixelIdx + 3 < data.length) {
+                        // Embed byte in RGB channels using LSB
+                        const byte = currentGlyphData[i];
+                        data[pixelIdx] = (data[pixelIdx] & 0xFC) | ((byte >> 6) & 0x03);     // R: bits 7-6
+                        data[pixelIdx + 1] = (data[pixelIdx + 1] & 0xFC) | ((byte >> 4) & 0x03); // G: bits 5-4
+                        data[pixelIdx + 2] = (data[pixelIdx + 2] & 0xF0) | (byte & 0x0F);        // B: bits 3-0
+                    }
+                }
+            }
+        }
+        
+        function encodeSemanticsToBytes(semantics) {
+            // Encode key semantic features into 8 bytes
+            const bytes = new Uint8Array(8);
+            
+            // Byte 0: Intent and emotional tone
+            const intentMap = {'question': 0, 'command': 1, 'statement': 2, 'exclamation': 3, 'neutral': 4};
+            const toneMap = {'positive': 0, 'negative': 1, 'neutral': 2};
+            bytes[0] = (intentMap[semantics.intent.primary] << 4) | (toneMap[semantics.emotional.tone] << 2);
+            
+            // Byte 1: Linguistic complexity (0-255)
+            bytes[1] = Math.floor(semantics.linguistic.complexity * 255);
+            
+            // Byte 2: Semantic density (0-255)
+            bytes[2] = Math.floor(semantics.semantic.density * 255);
+            
+            // Byte 3: Emotional intensity and valence
+            bytes[3] = Math.floor((semantics.emotional.intensity * 127)) | 
+                       ((semantics.emotional.valence > 0 ? 1 : 0) << 7);
+            
+            // Byte 4: Context flags
+            bytes[4] = (semantics.context.temporal ? 1 : 0) |
+                       (semantics.context.spatial ? 2 : 0) |
+                       (semantics.context.personal ? 4 : 0) |
+                       (semantics.context.abstract ? 8 : 0);
+            
+            // Byte 5: Pragmatic features
+            bytes[5] = Math.floor(semantics.pragmatic.formality * 85) |
+                       (Math.floor(semantics.pragmatic.directness * 3) << 6);
+            
+            // Byte 6: Certainty and urgency
+            bytes[6] = Math.floor(semantics.pragmatic.certainty * 127) |
+                       (semantics.intent.urgency ? 128 : 0);
+            
+            // Byte 7: Reserved for future use
+            bytes[7] = 0xFF; // Marker for extended version
+            
+            return bytes;
+        }
+
+        function hslToRgb(h, s, l) {
+            let r, g, b;
+
+            if (s === 0) {
+                r = g = b = l;
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1/6) return p + (q - p) * 6 * t;
+                    if (t < 1/2) return q;
+                    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                    return p;
+                };
+
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1/3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1/3);
+            }
+
+            return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        }
+
+        function generateGlyph() {
+            const text = document.getElementById('inputText').value;
+            if (!text) {
+                alert('Please enter some text to generate a glyph');
+                return;
+            }
+            
+            // Safety check for semantic functions
+            if (typeof analyzeSemanticLayers !== 'function') {
+                console.error('Semantic analysis functions not loaded');
+                alert('Error: Page not fully loaded. Please refresh and try again.');
+                return;
+            }
+
+            showModal('Generating', '<div class="loading"></div> Creating your Pattern glyph...');
+
+            // Small delay to show loading state
+            setTimeout(() => {
+                try {
+                    // Convert text to pattern stream
+                    const patternStream = textToPatternStream(text);
+                    currentGlyphData = patternStream;
+                    
+                    // Analyze semantic layers
+                    const semanticLayers = analyzeSemanticLayers(text);
+                    currentSemanticData = semanticLayers;
+
+                    // Calculate canvas size based on text complexity
+                    const complexity = Math.max(
+                        text.length,
+                        semanticLayers.linguistic.complexity * 1000,
+                        Object.keys(semanticLayers).length * 50
+                    );
+                    const size = Math.max(256, Math.min(512, Math.ceil(Math.sqrt(complexity * 100))));
+                    
+                    const canvas = document.getElementById('glyphCanvas');
+                    canvas.width = size;
+                    canvas.height = size;
+                    
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Generate multi-layer resonance field
+                    const field = generateResonanceField(patternStream, semanticLayers, size, size);
+                    
+                    // Convert to pixels with enhanced coloring
+                    const imageData = fieldToPixels(field, size, size, semanticLayers);
+                    ctx.putImageData(imageData, 0, 0);
+                    
+                    // Show canvas and controls
+                    canvas.style.display = 'block';
+                    document.getElementById('placeholder').style.display = 'none';
+                    document.getElementById('downloadControls').style.display = 'flex';
+                    document.getElementById('colorLegend').style.display = 'flex';
+                    document.getElementById('patternInfo').style.display = 'grid';
+                    
+                    // Update pattern info with semantic data
+                    updatePatternInfo(patternStream, field, semanticLayers);
+                    
+                    closeModal();
+                    
+                    // Show success briefly
+                    showModal('Success', 'Multi-layer Pattern glyph generated!');
+                    setTimeout(closeModal, 1500);
+                } catch (error) {
+                    console.error('Error generating glyph:', error);
+                    closeModal();
+                    alert('Error generating glyph. Please try again.');
+                }
+            }, 100);
+        }
+
+        function updatePatternInfo(patternStream, field, semanticLayers) {
+            // Calculate complexity
+            const uniquePatterns = new Set(patternStream).size;
+            const complexity = ((uniquePatterns / patternStream.length) * 100).toFixed(1);
+            
+            // Count active constants
+            const allActive = new Set();
+            patternStream.forEach(byte => {
+                const active = getActiveConstants(byte);
+                active.forEach(c => allActive.add(c.name));
+            });
+            
+            // Calculate resonance level
+            let totalResonance = 0;
+            for (let i = 0; i < field.length; i++) {
+                totalResonance += Math.abs(field[i]);
+            }
+            const avgResonance = (totalResonance / field.length).toFixed(3);
+            
+            // Update display with enhanced information
+            if (semanticLayers) {
+                // Pattern complexity with word count
+                const complexityText = `${complexity}% (${semanticLayers.linguistic.words} words)`;
+                document.getElementById('complexity').textContent = complexityText;
+                
+                // Active constants + semantic layers
+                const activeText = `${allActive.size}/8`;
+                document.getElementById('activeConstants').textContent = activeText;
+                
+                // Resonance with emotional tone
+                const resonanceText = `${avgResonance} (${semanticLayers.emotional.tone})`;
+                document.getElementById('resonance').textContent = resonanceText;
+                
+                // Semantic layers count
+                document.getElementById('semanticLayers').textContent = '6 active';
+                
+                // Intent type with emoji
+                const intentEmoji = {
+                    'question': '❓',
+                    'command': '📢',
+                    'statement': '📄',
+                    'exclamation': '❗',
+                    'neutral': '💭'
+                };
+                const intentText = `${intentEmoji[semanticLayers.intent.primary] || '💭'} ${semanticLayers.intent.primary}`;
+                document.getElementById('intentType').textContent = intentText;
+                
+                // Encoding depth based on semantic richness
+                const semanticRichness = 
+                    semanticLayers.semantic.density * 
+                    semanticLayers.linguistic.complexity * 
+                    (1 + semanticLayers.emotional.intensity);
+                let depthText = 'Multi-dimensional';
+                if (semanticRichness > 0.5) depthText = 'Hyper-dimensional';
+                if (semanticRichness < 0.1) depthText = 'Surface-level';
+                document.getElementById('encodingDepth').textContent = depthText;
+            } else {
+                // Basic updates without semantic data
+                document.getElementById('complexity').textContent = `${complexity}%`;
+                document.getElementById('activeConstants').textContent = allActive.size;
+                document.getElementById('resonance').textContent = avgResonance;
+                document.getElementById('semanticLayers').textContent = '1 (text only)';
+                document.getElementById('intentType').textContent = 'Unknown';
+                document.getElementById('encodingDepth').textContent = 'Basic';
+            }
+        }
+
+        function downloadGlyph() {
+            const canvas = document.getElementById('glyphCanvas');
+            const text = document.getElementById('inputText').value;
+            const filename = `pattern-glyph-${text.slice(0, 20).replace(/[^a-z0-9]/gi, '-')}-${Date.now()}.png`;
+            
+            canvas.toBlob(function(blob) {
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = URL.createObjectURL(blob);
+                link.click();
+                URL.revokeObjectURL(link.href);
+                
+                showModal('Success', 'Glyph downloaded successfully!');
+                setTimeout(closeModal, 2000);
+            }, 'image/png');
+        }
+
+        function copyToClipboard() {
+            const canvas = document.getElementById('glyphCanvas');
+            canvas.toBlob(blob => {
+                const item = new ClipboardItem({ 'image/png': blob });
+                navigator.clipboard.write([item]).then(() => {
+                    showModal('Success', 'Glyph copied to clipboard!');
+                    setTimeout(closeModal, 2000);
+                });
+            });
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // Check file type
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+            
+            // Show selected filename
+            const fileInfo = document.getElementById('selectedFile');
+            fileInfo.textContent = `Selected: ${file.name}`;
+            fileInfo.style.display = 'block';
+            
+            showModal('Loading', '<div class="loading"></div> Processing glyph...');
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    closeModal();
+                    decodeGlyph(img);
+                    // Reset file input so same file can be selected again
+                    event.target.value = '';
+                };
+                img.onerror = function() {
+                    closeModal();
+                    alert('Failed to load image');
+                    event.target.value = '';
+                };
+                img.src = e.target.result;
+            };
+            reader.onerror = function() {
+                closeModal();
+                alert('Failed to read file');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function decodeGlyph(img) {
+            const canvas = document.getElementById('decodeCanvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            
+            // Extract pattern data from pixels
+            const imageData = ctx.getImageData(0, 0, img.width, img.height);
+            const data = imageData.data;
+            
+            // Check magic markers
+            if (data[2] !== 0xAB || data[4] !== 0xCD) {
+                document.getElementById('decodedText').value = 'This does not appear to be a valid Pattern glyph';
+                document.getElementById('decodedText').style.color = '#ff6b6b';
+                canvas.style.display = 'block';
+                document.getElementById('decodePlaceholder').style.display = 'none';
+                setTimeout(() => {
+                    document.getElementById('decodedText').style.color = '';
+                }, 3000);
+                return;
+            }
+            
+            // Get text length from first 2 pixels
+            const textLength = (data[0] << 8) | data[1];
+            
+            if (textLength === 0 || textLength > (img.width * img.height - 10)) {
+                document.getElementById('decodedText').value = 'Invalid or corrupted glyph';
+                document.getElementById('decodedText').style.color = '#ff6b6b';
+                canvas.style.display = 'block';
+                document.getElementById('decodePlaceholder').style.display = 'none';
+                setTimeout(() => {
+                    document.getElementById('decodedText').style.color = '';
+                }, 3000);
+                return;
+            }
+            
+            // Extract semantic metadata from pixels 2-10
+            const semanticBytes = [];
+            for (let i = 0; i < 8; i++) {
+                semanticBytes.push(data[8 + i * 4]);
+            }
+            const decodedSemantics = decodeSemanticBytes(semanticBytes);
+            
+            // Extract pattern stream from subsequent pixels using LSB
+            const patternStream = [];
+            for (let i = 0; i < textLength; i++) {
+                const pixelIdx = (i + 10) * 4; // Start from pixel 10
+                if (pixelIdx + 3 < data.length) {
+                    // Extract byte from RGB channels
+                    const r_bits = (data[pixelIdx] & 0x03) << 6;      // bits 7-6 from R
+                    const g_bits = (data[pixelIdx + 1] & 0x03) << 4;  // bits 5-4 from G
+                    const b_bits = data[pixelIdx + 2] & 0x0F;         // bits 3-0 from B
+                    const byte = r_bits | g_bits | b_bits;
+                    patternStream.push(byte);
+                }
+            }
+            
+            // Convert back to text
+            const decodedText = patternStream.map(byte => String.fromCharCode(byte)).join('');
+            
+            // Create rich output with semantic information
+            let richOutput = decodedText + '\n\n';
+            richOutput += '=== Semantic Analysis ===\n';
+            richOutput += `Intent: ${decodedSemantics.intent}\n`;
+            richOutput += `Emotional Tone: ${decodedSemantics.tone}\n`;
+            richOutput += `Complexity: ${(decodedSemantics.complexity * 100).toFixed(1)}%\n`;
+            richOutput += `Semantic Density: ${(decodedSemantics.density * 100).toFixed(1)}%\n`;
+            richOutput += `Context: ${decodedSemantics.contextFlags.join(', ') || 'none'}\n`;
+            richOutput += `Formality: ${(decodedSemantics.formality * 100).toFixed(0)}%\n`;
+            richOutput += `Certainty: ${(decodedSemantics.certainty * 100).toFixed(0)}%\n`;
+            if (decodedSemantics.urgent) richOutput += `⚠️ URGENT\n`;
+            
+            // Display results
+            canvas.style.display = 'block';
+            document.getElementById('decodePlaceholder').style.display = 'none';
+            document.getElementById('decodedText').value = richOutput;
+            
+            // Show success message
+            showModal('Success', `Decoded ${textLength} characters with ${Object.keys(decodedSemantics).length} semantic layers!`);
+            setTimeout(closeModal, 2000);
+        }
+        
+        function decodeSemanticBytes(bytes) {
+            const intentMap = ['question', 'command', 'statement', 'exclamation', 'neutral'];
+            const toneMap = ['positive', 'negative', 'neutral'];
+            
+            return {
+                intent: intentMap[(bytes[0] >> 4) & 0x0F] || 'unknown',
+                tone: toneMap[(bytes[0] >> 2) & 0x03] || 'neutral',
+                complexity: bytes[1] / 255,
+                density: bytes[2] / 255,
+                emotionalIntensity: (bytes[3] & 0x7F) / 127,
+                emotionalValence: (bytes[3] & 0x80) ? 'positive' : 'negative',
+                contextFlags: [
+                    (bytes[4] & 1) && 'temporal',
+                    (bytes[4] & 2) && 'spatial',
+                    (bytes[4] & 4) && 'personal',
+                    (bytes[4] & 8) && 'abstract'
+                ].filter(Boolean),
+                formality: (bytes[5] & 0x3F) / 85,
+                directness: ((bytes[5] >> 6) & 0x03) / 3,
+                certainty: (bytes[6] & 0x7F) / 127,
+                urgent: !!(bytes[6] & 0x80),
+                version: bytes[7] === 0xFF ? 'extended' : 'basic'
+            };
+        }
+
+        function copyDecodedText() {
+            const textarea = document.getElementById('decodedText');
+            if (!textarea.value) {
+                alert('No text to copy');
+                return;
+            }
+            textarea.select();
+            document.execCommand('copy');
+            showModal('Success', 'Text copied to clipboard!');
+            setTimeout(closeModal, 2000);
+        }
+
+        function showModal(title, body) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalBody').innerHTML = body;
+            document.getElementById('modal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+        
+        // Initialization check and debug
+        window.addEventListener('load', function() {
+            console.log('Pattern Glyph Generator loaded');
+            
+            // Test if functions are available
+            try {
+                const testText = "Hello world!";
+                const testResult = analyzeSemanticLayers(testText);
+                console.log('Semantic analysis test successful:', testResult);
+            } catch (error) {
+                console.error('Semantic analysis test failed:', error);
+            }
+            
+            // Add debug info to page
+            const debugInfo = document.createElement('div');
+            debugInfo.style.cssText = 'position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.8); color: #0f0; padding: 10px; font-family: monospace; font-size: 12px; z-index: 9999; display: none;';
+            debugInfo.id = 'debugInfo';
+            debugInfo.innerHTML = `
+                Functions loaded: ${typeof analyzeSemanticLayers === 'function' ? '✓' : '✗'}<br>
+                Constants loaded: ${typeof constants === 'object' ? '✓' : '✗'}<br>
+                Ready: ${typeof analyzeSemanticLayers === 'function' && typeof constants === 'object' ? 'YES' : 'NO'}
+            `;
+            document.body.appendChild(debugInfo);
+            
+            // Show debug info on Ctrl+D
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.key === 'd') {
+                    e.preventDefault();
+                    const debug = document.getElementById('debugInfo');
+                    debug.style.display = debug.style.display === 'none' ? 'block' : 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
